@@ -18,7 +18,7 @@ class ViewController: UIViewController {
         // Do any additional setup after loading the view.
         
         pickerButton.enabledBackgroundColor = UIColor.blue
-        pickerButton.setDatasource([createNameDatasource()])
+        pickerButton.setDatasource(createNameDatasource())
         
         pickerButton.doneActionHandler = { [weak self] (pickerButton, pickerItems) in
             guard let self = self else { return }
@@ -28,11 +28,11 @@ class ViewController: UIViewController {
 }
 
 private extension ViewController {
-    func createNameDatasource() -> [PickerData] {
-        return [PickerData(value: ""),
-                PickerData(value: "Alex"),
-                PickerData(value: "Tom"),
-                PickerData(value: "Jimmy")]
+    func createNameDatasource() -> [[PickerData]] {
+        return [[PickerData(value: ""),
+                PickerData(value: "Alex sdsds"),
+                PickerData(value: "Tom sdsd"),
+                PickerData(value: "Jimmy sssss")]]
     }
 }
 

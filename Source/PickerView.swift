@@ -56,10 +56,20 @@ private extension PickerView {
 
 // MARK: - Datasource Flow
 extension PickerView {
-    /// Set datatsource for picker
+    /// Set datatsource with one component for picker
     ///
     /// - Parameters:
-    ///   - datasources: Datasources will load to picker
+    ///   - datasources: Datasources with one component will load to picker
+    open func setDatasource(_ datasource: [PickerData]?) {
+        self.datasources = [datasource ?? []]
+        currentItem.removeAll()
+        picker.reloadAllComponents()
+    }
+    
+    /// Set datatsource with multi component for picker
+    ///
+    /// - Parameters:
+    ///   - datasources: Datasources with multi component will load to picker
     open func setDatasource(_ datasources: [[PickerData]]?) {
         self.datasources = datasources ?? []
         currentItem.removeAll()
@@ -186,12 +196,16 @@ extension PickerView: UIPickerViewDataSource {
 
 // MARK: - UIPickerViewDelegate
 extension PickerView: UIPickerViewDelegate {
-    open  func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString? {
+    open func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString?
+    {
         guard let title = datasources[safe: component]?[safe: row]?.title else { return nil }
-        return NSMutableAttributedString(string: title)
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.alignment = .center
+        let text = NSMutableAttributedString(string: title, attributes: [.paragraphStyle: paragraphStyle])
+        return text
     }
     
-    open  func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+    open func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
         guard let datasource = datasources[safe: component], let data = datasource[safe: row] else { return }
         let item = PickerItem(component: component, row: row, data: data)
         storeSelectedItem(item)

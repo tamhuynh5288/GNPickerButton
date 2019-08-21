@@ -25,30 +25,15 @@ open class PickerButton: UIButton {
     /// Combine title in all component to picker button title. Default: True
     open var autoCombineTitle = true
     
-    /// Image of indicator
-    open var indicatorImage: UIImage? {
-        didSet { layoutTitleHorizontalInsetIfNeed() }
-    }
-    
-    // ======================================================================
-    // MARK: - Color Properties
-    // ======================================================================
-    
-    open var enabledBackgroundColor = UIColor.white {
-        didSet { setEnabledState(isEnabled) }
-    }
-    
-    open var disabledBackgroundColor = UIColor.lightGray {
-        didSet { setEnabledState(isEnabled) }
-    }
-    
-    open var disabledTitleColor = UIColor.darkGray {
-        didSet { setTitleColor(showTitleOnDisabledState ? disabledTitleColor : .clear, for: .disabled) }
-    }
-    
     // ======================================================================
     // MARK: - Inspectable Properties
     // ======================================================================
+    
+    /// Image of indicator
+    @IBInspectable
+    open var indicatorImage: UIImage? {
+        didSet { layoutTitleHorizontalInsetIfNeed() }
+    }
     
     @IBInspectable
     open var titleHorizontalInset: CGFloat = 16 {
@@ -66,21 +51,33 @@ open class PickerButton: UIButton {
     }
     
     // ======================================================================
-    // MARK: - Enabled/Disabled
+    // MARK: - Enabled/Disabled State
     // ======================================================================
+    
+    open var enabledBackgroundColor = UIColor.white {
+        didSet { setEnabledState(isEnabled) }
+    }
+    
+    open var disabledBackgroundColor = UIColor.lightGray {
+        didSet { setEnabledState(isEnabled) }
+    }
+    
+    open var disabledTitleColor = UIColor.darkGray {
+        didSet { setEnabledState(isEnabled) }
+    }
     
     override open var isEnabled: Bool {
         didSet { setEnabledState(isEnabled) }
     }
     
-    /// Show or hide title when control is on disabled state. Default is True
+    /// Show or hide indicator when control is on disabled state. Default is True
     open var showIndicatorOnDisabledState = true {
         didSet { setEnabledState(isEnabled) }
     }
     
     /// Show or hide title when control is on disabled state. Default is True
     open var showTitleOnDisabledState = true {
-        didSet { setTitleColor(showTitleOnDisabledState ? disabledTitleColor : .clear, for: .disabled) }
+        didSet { setEnabledState(isEnabled) }
     }
     
     // ======================================================================
@@ -173,6 +170,7 @@ private extension PickerButton {
         let trailingConstraint = indicatorImageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: indicatorHorizontalInset)
         NSLayoutConstraint.activate([indicatorImageView.widthAnchor.constraint(equalToConstant: 24),
                                      indicatorImageView.heightAnchor.constraint(equalToConstant: 24),
+                                     indicatorImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
                                      indicatorHorizontalMargin == .leading ? leadingConstraint : trailingConstraint])
     }
 }
@@ -196,11 +194,20 @@ private extension PickerButton {
         if backgroundImage(for: .normal) != nil { return }
         backgroundColor = isEnabled ? enabledBackgroundColor : disabledBackgroundColor
         indicatorImageView.isHidden = showIndicatorOnDisabledState ? false : !isEnabled
+        setTitleColor(showTitleOnDisabledState ? disabledTitleColor : .clear, for: .disabled)
     }
 }
 
 // MARK: - Datasource Flow
 extension PickerButton {
+    /// Set datatsource with one component for picker
+    ///
+    /// - Parameters:
+    ///   - datasources: Datasources with one component will load to picker
+    open func setDatasource(_ datasource: [PickerData]?) {
+        pickerView.setDatasource(datasource)
+    }
+    
     /// Set datatsource for picker
     ///
     /// - Parameters:
