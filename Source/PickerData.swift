@@ -19,8 +19,8 @@ public struct PickerData {
     public var options: [String: Any]?
     
     public init(value: String? = nil, title: String? = nil, optional: String? = nil, options: [String: Any]? = nil) {
-        self.title = title ?? value ?? ""
         self.value = value ?? ""
+        self.title = title ?? value ?? ""        
         self.optionalValue = optional
         self.options = options
     }

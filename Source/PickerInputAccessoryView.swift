@@ -28,8 +28,9 @@ open class PickerInputAccessoryView: UIView {
     
     func loadView() {
         let doneButton = UIButton()
-        doneButton.setTitle("Done", for: .normal)
+        doneButton.setTitle("DONE", for: .normal)
         doneButton.setTitleColor(UIColor.black, for: .normal)
+        doneButton.titleLabel?.font = UIFont.systemFont(ofSize: 16)
         doneButton.addTarget(self, action: #selector(doneAction), for: .touchUpInside)
         
         let view = UIView()

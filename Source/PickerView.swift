@@ -32,7 +32,9 @@ open class PickerView: UIView {
     }
 }
 
+// ======================================================================
 // MARK: - Private Methods
+// ======================================================================
 private extension PickerView {
     /// Load view
     private func loadView() {
@@ -54,7 +56,9 @@ private extension PickerView {
     }
 }
 
+// ======================================================================
 // MARK: - Datasource Flow
+// ======================================================================
 extension PickerView {
     /// Set datatsource with one component for picker
     ///
@@ -85,10 +89,12 @@ extension PickerView {
     }
 }
 
+// ======================================================================
 // MARK: - Selected Item Flow
+// ======================================================================
 extension PickerView {
     /// Return all selected item in all component. First item has component at index 0.
-    open var selectedItem: [PickerItem] {
+    open var selectedItems: [PickerItem] {
         return currentItem
     }
     
@@ -96,7 +102,7 @@ extension PickerView {
     ///
     /// - Parameter inComponent: Component index of item
     /// - Returns: Current selected item
-    open func selectedItem(inComponent: Int) -> PickerItem? {
+    open func selectedItem(inComponent: Int = 0) -> PickerItem? {
         guard let index = currentItem.firstIndex(where: { $0.component == inComponent }) else { return nil }
         return currentItem[index]
     }
@@ -132,7 +138,9 @@ extension PickerView {
     }
 }
 
+// ======================================================================
 // MARK: - Select Item Flow
+// ======================================================================
 extension PickerView {
     /// Select item at index
     ///
@@ -142,7 +150,7 @@ extension PickerView {
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectRow(_ row: Int, inComponent: Int, animated: Bool = true) -> PickerItem? {
+    open func selectRow(_ row: Int, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
         guard let datasource = datasources[safe: inComponent], let data = datasource[safe: row] else { return nil }
         picker.selectRow(row, inComponent: inComponent, animated: animated)
         let item = PickerItem(component: inComponent, row: row, data: data)
@@ -158,7 +166,7 @@ extension PickerView {
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectValue(_ value: String?, inComponent: Int, animated: Bool = true) -> PickerItem? {
+    open func selectValue(_ value: String?, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
         guard let value = value,
             let datasource = datasources[safe: inComponent],
             let row = datasource.firstIndex(where: { $0.value == value }) else { return nil }
@@ -174,7 +182,7 @@ extension PickerView {
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectTitle(_ title: String?, inComponent: Int, animated: Bool = true) -> PickerItem? {
+    open func selectTitle(_ title: String?, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
         guard let title = title,
             let datasource = datasources[safe: inComponent],
             let row = datasource.firstIndex(where: { $0.title == title }) else { return nil }
@@ -183,7 +191,9 @@ extension PickerView {
     }
 }
 
+// ======================================================================
 // MARK: - UIPickerViewDataSource
+// ======================================================================
 extension PickerView: UIPickerViewDataSource {
     open  func numberOfComponents(in pickerView: UIPickerView) -> Int {
         return datasources.count
@@ -194,7 +204,9 @@ extension PickerView: UIPickerViewDataSource {
     }
 }
 
+// ======================================================================
 // MARK: - UIPickerViewDelegate
+// ======================================================================
 extension PickerView: UIPickerViewDelegate {
     open func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString?
     {

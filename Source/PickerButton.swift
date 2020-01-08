@@ -10,14 +10,21 @@ import UIKit
 
 open class PickerButton: UIButton {
     public let titleComponentSeparator = " "
+    public let indicatorImageSize = CGSize(width: 24, height: 24)
+    
     open var textField = UITextField(frame: .zero)
     open var pickerView = PickerView(frame: CGRect(x: 0, y: 0, width: 216, height: 216))
     open var accessoryView = PickerInputAccessoryView(frame: CGRect(x: 0, y: 0, width: 44, height: 44))
-    open var indicatorImageView = UIImageView(image: nil)
+    open var indicatorButton = UIButton()
     
-    open var didBeginEditing: ((String?) -> Void)?
-    open var selectedItemHandler: ((PickerItem) -> Void)?
-    open var doneActionHandler: ((PickerButton, [PickerItem]) -> Void)?
+    /// List of stored constraints of indicatorButton
+    private var indicatorButtonConstraints = [NSLayoutConstraint]()
+    
+    // Handler closures
+    open var beginEditingHandler: ((String?) -> Void)?
+    open var selectedRowHandler: ((PickerItem) -> Void)?
+    open var doneActionHandler: (([PickerItem]) -> Void)?
+    open var doneActionOnFirstComponentHandler: ((PickerItem) -> Void)?
     
     /// Picker button title will automatic set when item was selected. Default: True
     open var autoDisplayTitle = true
@@ -26,13 +33,16 @@ open class PickerButton: UIButton {
     open var autoCombineTitle = true
     
     // ======================================================================
-    // MARK: - Inspectable Properties
+    // MARK: - Layout Properties
     // ======================================================================
     
     /// Image of indicator
     @IBInspectable
-    open var indicatorImage: UIImage? {
-        didSet { layoutTitleHorizontalInsetIfNeed() }
+    open var indicatorImage: UIImage? = #imageLiteral(resourceName: "list_pull") {
+        didSet {
+            indicatorButton.setImage(indicatorImage, for: .normal)
+            layoutTitleHorizontalInsetIfNeed()
+        }
     }
     
     @IBInspectable
@@ -41,32 +51,45 @@ open class PickerButton: UIButton {
     }
     
     @IBInspectable
-    open var indicatorHorizontalMargin: ContentHorizontalAlignment = .trailing {
-        didSet { setupIndicatorImageView() }
+    open var indicatorHorizontalInset: CGFloat = 16 {
+        didSet {
+            layoutIndicatorButtonIfNeeded()
+            layoutTitleHorizontalInsetIfNeed()
+        }
     }
     
-    @IBInspectable
-    open var indicatorHorizontalInset: CGFloat = 16 {
-        didSet { setupIndicatorImageView() }
+    open var indicatorHorizontalMargin: ContentHorizontalAlignment = .trailing {
+        didSet {
+            layoutIndicatorButtonIfNeeded()
+            layoutTitleHorizontalInsetIfNeed()
+        }
     }
     
     // ======================================================================
     // MARK: - Enabled/Disabled State
     // ======================================================================
     
-    open var enabledBackgroundColor = UIColor.white {
+    @IBInspectable
+    open var enabledBackgroundColor: UIColor = .white {
         didSet { setEnabledState(isEnabled) }
     }
     
-    open var disabledBackgroundColor = UIColor.lightGray {
+    @IBInspectable
+    open var disabledBackgroundColor: UIColor = .lightGray {
         didSet { setEnabledState(isEnabled) }
     }
     
-    open var disabledTitleColor = UIColor.darkGray {
+    @IBInspectable
+    open var disabledTitleColor: UIColor = .darkGray {
         didSet { setEnabledState(isEnabled) }
     }
     
     override open var isEnabled: Bool {
+        didSet { setEnabledState(isEnabled) }
+    }
+    
+    /// Use indicator image or not. Default is True
+    open var useIndicatorImage = true {
         didSet { setEnabledState(isEnabled) }
     }
     
@@ -117,23 +140,25 @@ private extension PickerButton {
     func configuration() {
         defer {
             setEnabledState(isEnabled)
-            layoutTitleHorizontalInsetIfNeed()
-            setTitleColor(showTitleOnDisabledState ? disabledTitleColor : .clear, for: .disabled)
         }
         
         // Add subviews
         insertSubview(textField, at: 0)
-        insertSubview(indicatorImageView, at: 0)
+        insertSubview(indicatorButton, at: 0)
         
         // Setup picker button
         titleLabel?.lineBreakMode = .byTruncatingTail
         addTarget(self, action: #selector(becomeFirstResponder), for: .touchUpInside)
         
+        // Setup indicator button
+        indicatorButton.setImage(indicatorImage, for: .normal)
+        indicatorButton.addTarget(self, action: #selector(actionIndicatorImage), for: .touchUpInside)
+        
         // Setup subviews
         setupInputTextField()
         setupPickerView()
         setupAccessoryView()
-        setupIndicatorImageView()
+        setupIndicatorButton()
     }
     
     /// Setup input textfield
@@ -147,7 +172,7 @@ private extension PickerButton {
     /// Setup picker view
     func setupPickerView() {
         pickerView.selectedItemHandler = { [weak self] (sender, item) in
-            self?.selectedItemHandler?(item)
+            self?.selectedRowHandler?(item)
         }
     }
     
@@ -156,22 +181,30 @@ private extension PickerButton {
         accessoryView.doneActionHandler = { [weak self] (sender) in
             guard let self = self else { return }
             self.resignFirstResponder()
-            self.setDefaultDisplay(pickerItems: self.selectedItem)
-            self.doneActionHandler?(self, self.selectedItem)
+            self.setDefaultDisplay(pickerItems: self.selectedItems)
+            self.doneActionHandler?(self.selectedItems)
+            if let selectedItem = self.selectedItems.first {
+                self.doneActionOnFirstComponentHandler?(selectedItem)
+            }            
         }
     }
     
-    /// Setup indicator view
-    func setupIndicatorImageView() {
+    /// Setup accessory view
+    func setupIndicatorButton() {
         // Set autoLayout for view
-        indicatorImageView.translatesAutoresizingMaskIntoConstraints = false
-        indicatorImageView.removeConstraints(indicatorImageView.constraints)
-        let leadingConstraint = indicatorImageView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: indicatorHorizontalInset)
-        let trailingConstraint = indicatorImageView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: indicatorHorizontalInset)
-        NSLayoutConstraint.activate([indicatorImageView.widthAnchor.constraint(equalToConstant: 24),
-                                     indicatorImageView.heightAnchor.constraint(equalToConstant: 24),
-                                     indicatorImageView.centerYAnchor.constraint(equalTo: centerYAnchor),
-                                     indicatorHorizontalMargin == .leading ? leadingConstraint : trailingConstraint])
+        indicatorButton.translatesAutoresizingMaskIntoConstraints = false
+        // Create list of constraints
+        let constraints = [indicatorButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -indicatorHorizontalInset),
+                           indicatorButton.widthAnchor.constraint(equalToConstant: indicatorImageSize.width),
+                           indicatorButton.heightAnchor.constraint(equalToConstant: indicatorImageSize.height),
+                           indicatorButton.centerYAnchor.constraint(equalTo: centerYAnchor)]
+        // Active all constraints
+        indicatorButtonConstraints = constraints
+        NSLayoutConstraint.activate(indicatorButtonConstraints)
+    }
+    
+    @objc func actionIndicatorImage() {
+        sendActions(for: .touchUpInside)
     }
 }
 
@@ -179,22 +212,33 @@ private extension PickerButton {
 private extension PickerButton {
     /// Layout inset of button title
     func layoutTitleHorizontalInsetIfNeed() {
-        guard indicatorImage == nil else {
-            let value = (indicatorHorizontalInset * 2) + indicatorImageView.bounds.width
-            titleEdgeInsets = UIEdgeInsets(top: 0, left: value, bottom: 0, right: value)
-            return
-        }
         titleEdgeInsets = UIEdgeInsets(top: 0, left: titleHorizontalInset, bottom: 0, right: titleHorizontalInset)
+    }
+    
+    /// Setup indicator view
+    func layoutIndicatorButtonIfNeeded() {
+        // Checking if indicatorButton is currently hidden. Dont create constraint for it
+        guard !indicatorButton.isHidden && !indicatorButtonConstraints.isEmpty else { return }
+        
+        // Checking horizontal constraints is Leading or Trailing, and add correct constraint to indicatorButton
+        if indicatorHorizontalMargin == .leading {
+            indicatorButtonConstraints[0].constant = -(bounds.width - indicatorHorizontalInset - indicatorImageSize.width)
+        } else {
+            indicatorButtonConstraints[0].constant = -indicatorHorizontalInset
+        }
+        layoutIfNeeded()
     }
     
     /// Set enabled/disabled state of picker button
     ///
     /// - Parameter isEnabled: True will enable picker button and process any thing related
     func setEnabledState(_ isEnabled: Bool) {
+        indicatorButton.isHidden = !useIndicatorImage ? true : (showIndicatorOnDisabledState ? false : !isEnabled)
+        layoutIndicatorButtonIfNeeded()
+        layoutTitleHorizontalInsetIfNeed()
+        setTitleColor(showTitleOnDisabledState ? disabledTitleColor : .clear, for: .disabled)
         if backgroundImage(for: .normal) != nil { return }
         backgroundColor = isEnabled ? enabledBackgroundColor : disabledBackgroundColor
-        indicatorImageView.isHidden = showIndicatorOnDisabledState ? false : !isEnabled
-        setTitleColor(showTitleOnDisabledState ? disabledTitleColor : .clear, for: .disabled)
     }
 }
 
@@ -228,15 +272,15 @@ extension PickerButton {
 // MARK: - Get Selected Item Flow
 extension PickerButton {
     /// Return all selected item in all component
-    open var selectedItem: [PickerItem] {
-        return pickerView.selectedItem
+    open var selectedItems: [PickerItem] {
+        return pickerView.selectedItems
     }
     
     /// Return the current selected item in exactly component
     ///
     /// - Parameter inComponent: Component of datasources
     /// - Returns: Current selected item
-    open func selectedItem(inComponent: Int) -> PickerItem? {
+    open func selectedItem(inComponent: Int = 0) -> PickerItem? {
         return pickerView.selectedItem(inComponent: inComponent)
     }
 }
@@ -251,9 +295,9 @@ extension PickerButton {
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectRow(_ row: Int, inComponent: Int, animated: Bool = true) -> PickerItem? {
+    open func selectRow(_ row: Int, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
         if let item = pickerView.selectRow(row, inComponent: inComponent, animated: animated) {
-            setDefaultDisplay(pickerItems: selectedItem)
+            setDefaultDisplay(pickerItems: selectedItems)
             return item
         }
         return nil
@@ -267,9 +311,9 @@ extension PickerButton {
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectValue(_ value: String?, inComponent: Int, animated: Bool = true) -> PickerItem? {
+    open func selectValue(_ value: String?, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
         if let item = pickerView.selectValue(value, inComponent: inComponent, animated: animated) {
-            setDefaultDisplay(pickerItems: selectedItem)
+            setDefaultDisplay(pickerItems: selectedItems)
             return item
         }
         return nil
@@ -283,9 +327,9 @@ extension PickerButton {
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectTitle(_ title: String?, inComponent: Int, animated: Bool = true) -> PickerItem? {
+    open func selectTitle(_ title: String?, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
         if let item = pickerView.selectTitle(title, inComponent: inComponent, animated: animated) {
-            setDefaultDisplay(pickerItems: selectedItem)
+            setDefaultDisplay(pickerItems: selectedItems)
             return item
         }
         return nil
@@ -316,9 +360,9 @@ extension PickerButton {
     ///   - inComponent: Component contain picker item
     ///   - shouldSelectItem: True will auto select item corresponding. Default is false
     ///   - animated: True will animated select action
-    open func setDisplayTitle(_ title: String?, inComponent: Int, shouldSelectItem: Bool = false, animated: Bool = true) {
+    open func setDisplayTitle(_ title: String?, inComponent: Int = 0, shouldSelectItem: Bool = false, animated: Bool = true) {
         // Auto select picker item in correct component
-        if shouldSelectItem {
+        if shouldSelectItem || selectedItems.isEmpty {
             pickerView.selectTitle(title, inComponent: inComponent, animated: animated)
         }
         // Set title for picker button
@@ -338,7 +382,7 @@ extension PickerButton {
             let title = item.data.title
             completedTitle += completedTitle.isEmpty ? title : (titleComponentSeparator + title)
             // Auto select picker item in correct component
-            if shouldSelectItem {
+            if shouldSelectItem || selectedItems.isEmpty {
                 pickerView.selectTitle(title, inComponent: item.component, animated: animated)
             }
         }
@@ -351,7 +395,7 @@ extension PickerButton {
 extension PickerButton: UITextFieldDelegate {
     open func textFieldDidBeginEditing(_ textField: UITextField) {
         let displayTitle = title(for: .normal) ?? ""
-        didBeginEditing?(displayTitle)
+        beginEditingHandler?(displayTitle)
         // Auto reSelect pickerItem match with title if need
         guard autoDisplayTitle else { return }
         if autoCombineTitle {
