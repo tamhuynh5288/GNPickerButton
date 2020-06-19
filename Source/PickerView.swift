@@ -10,10 +10,16 @@ import UIKit
 import Foundation
 
 open class PickerView: UIView {
-    open var picker = UIPickerView()
-    open var datasources: [[PickerData]] = []
-    open var currentItem: [PickerItem] = []
+    /// Picker
+    open private(set) var picker = UIPickerView()
     
+    /// Datasource of picker
+    open private(set) var datasources = [[PickerData]]()
+    
+    /// Return all selected item in all component. Sorted  list by ascending components
+    open private(set) var selectedItems = [PickerItem]()
+    
+    /// Handler when selected item completed
     open var selectedItemHandler: ((PickerView, PickerItem) -> Void)?
     
     public required init?(coder aDecoder: NSCoder) {
@@ -26,15 +32,12 @@ open class PickerView: UIView {
         loadView()
     }
     
-    public init() {
-        super.init(frame: .zero)
-        loadView()
+    public convenience init() {
+        self.init(frame: .zero)
     }
 }
 
-// ======================================================================
-// MARK: - Private Methods
-// ======================================================================
+// MARK: - PRIVATE METHODS
 private extension PickerView {
     /// Load view
     private func loadView() {
@@ -56,59 +59,42 @@ private extension PickerView {
     }
 }
 
-// ======================================================================
-// MARK: - Datasource Flow
-// ======================================================================
+// MARK: - DATASOURCES
 extension PickerView {
     /// Set datatsource with one component for picker
-    ///
-    /// - Parameters:
-    ///   - datasources: Datasources with one component will load to picker
+    /// - Parameter datasource: Datasources with one component will load to picker
     open func setDatasource(_ datasource: [PickerData]?) {
         self.datasources = [datasource ?? []]
-        currentItem.removeAll()
+        selectedItems.removeAll()
         picker.reloadAllComponents()
     }
     
     /// Set datatsource with multi component for picker
-    ///
-    /// - Parameters:
-    ///   - datasources: Datasources with multi component will load to picker
+    /// - Parameter datasources: Datasources with multi component will load to picker
     open func setDatasource(_ datasources: [[PickerData]]?) {
         self.datasources = datasources ?? []
-        currentItem.removeAll()
+        selectedItems.removeAll()
         picker.reloadAllComponents()
     }
-    
+
     /// Set datatsource for picker
-    ///
-    /// - Parameters:
-    ///   - pickerDatasource: Any datasource conform PickerDatasource protocol
+    /// - Parameter pickerDatasource: Any datasource conform PickerDatasource protocol
     open func setDatasource(_ pickerDatasource: PickerDatasource?) {
         setDatasource(pickerDatasource?.datasources)
     }
 }
 
-// ======================================================================
-// MARK: - Selected Item Flow
-// ======================================================================
+// MARK: - SELECTED ITEM
 extension PickerView {
-    /// Return all selected item in all component. First item has component at index 0.
-    open var selectedItems: [PickerItem] {
-        return currentItem
-    }
-    
     /// Return the current selected item in exactly component
-    ///
-    /// - Parameter inComponent: Component index of item
-    /// - Returns: Current selected item
+    /// - Parameter inComponent: Index of component
+    /// - Returns: PickerItem which has selected
     open func selectedItem(inComponent: Int = 0) -> PickerItem? {
-        guard let index = currentItem.firstIndex(where: { $0.component == inComponent }) else { return nil }
-        return currentItem[index]
+        guard let index = selectedItems.firstIndex(where: { $0.component == inComponent }) else { return nil }
+        return selectedItems[index]
     }
     
     /// Store selected item
-    ///
     /// - Parameter item: PickerItem which will be store
     /// - Returns: PickerItem after store into current item list
     @discardableResult
@@ -117,96 +103,84 @@ extension PickerView {
     }
     
     /// Store selected item
-    ///
     /// - Parameters:
     ///   - row: Row of item
-    ///   - inComponent: Component of item in datasource
+    ///   - component: Component of item
     ///   - data: Data of item
-    /// - Returns: PickerItem after store into current item list
+    /// - Returns: PickerItem after store into selectedItems list
     @discardableResult
-    private func storeSelectedItem(row: Int, inComponent: Int, data: PickerData) -> PickerItem {
-        let pickerItem = PickerItem(component: inComponent, row: row, data: data)
+    private func storeSelectedItem(row: Int, inComponent component: Int, data: PickerData) -> PickerItem {
+        let item = PickerItem(component: component, row: row, data: data)
         // Update item data if existed. Otherwise, append new item
-        if let index = currentItem.firstIndex(where: { $0.component == inComponent }) {
-            currentItem[index] = pickerItem
+        if let index = selectedItems.firstIndex(where: { $0.component == component }) {
+            selectedItems[index] = item
         } else {
-            currentItem.append(pickerItem)
+            selectedItems.append(item)
         }
-        // Sort current item by component
-        currentItem.sort(by: { $0.component < $1.component })
-        return pickerItem
+        // Sort current item by ascending components
+        selectedItems.sort(by: { $0.component < $1.component })
+        return item
     }
 }
 
-// ======================================================================
-// MARK: - Select Item Flow
-// ======================================================================
+// MARK: - SET SELECT ITEM
 extension PickerView {
     /// Select item at index
-    ///
     /// - Parameters:
-    ///   - row: Row of item in datasource
-    ///   - inComponent: Component of item in datasource
+    ///   - row: Row of item
+    ///   - component: Component of item
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectRow(_ row: Int, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
-        guard let datasource = datasources[safe: inComponent], let data = datasource[safe: row] else { return nil }
-        picker.selectRow(row, inComponent: inComponent, animated: animated)
-        let item = PickerItem(component: inComponent, row: row, data: data)
+    open func selectRow(_ row: Int, inComponent component: Int = 0, animated: Bool = true) -> PickerItem? {
+        guard let datasource = datasources[safe: component], let data = datasource[safe: row] else { return nil }
+        picker.selectRow(row, inComponent: component, animated: animated)
+        let item = PickerItem(component: component, row: row, data: data)
         storeSelectedItem(item)
         return item
     }
     
     /// Select item with value
-    ///
     /// - Parameters:
     ///   - value: The value of item
-    ///   - inComponent: Component of item in datasource
+    ///   - component: Component of item
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectValue(_ value: String?, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
-        guard let value = value,
-            let datasource = datasources[safe: inComponent],
+    open func selectValue(_ value: String?, inComponent component: Int = 0, animated: Bool = true) -> PickerItem? {
+        guard let value = value, let datasource = datasources[safe: component],
             let row = datasource.firstIndex(where: { $0.value == value }) else { return nil }
         
-        return selectRow(row, inComponent: inComponent, animated: animated)
+        return selectRow(row, inComponent: component, animated: animated)
     }
     
     /// Select item with title
-    ///
     /// - Parameters:
     ///   - title: The title of item
-    ///   - inComponent: Component of item in datasource
+    ///   - component: Component of item
     ///   - animated: True will animated selection action
     /// - Returns: PickerItem which has selected
     @discardableResult
-    open func selectTitle(_ title: String?, inComponent: Int = 0, animated: Bool = true) -> PickerItem? {
-        guard let title = title,
-            let datasource = datasources[safe: inComponent],
+    open func selectTitle(_ title: String?, inComponent component: Int = 0, animated: Bool = true) -> PickerItem? {
+        guard let title = title, let datasource = datasources[safe: component],
             let row = datasource.firstIndex(where: { $0.title == title }) else { return nil }
         
-        return selectRow(row, inComponent: inComponent, animated: animated)
+        return selectRow(row, inComponent: component, animated: animated)
     }
 }
 
-// ======================================================================
-// MARK: - UIPickerViewDataSource
-// ======================================================================
+// MARK: - PICKERVIEW DATASOURCE
 extension PickerView: UIPickerViewDataSource {
     open  func numberOfComponents(in pickerView: UIPickerView) -> Int {
-        return datasources.count
+        datasources.count
     }
     
     open  func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return datasources[safe: component]?.count ?? 0
+        datasources[safe: component]?.count ?? 0
     }
 }
 
-// ======================================================================
-// MARK: - UIPickerViewDelegate
-// ======================================================================
+// MARK: - PICKERVIEW DELEGATE
 extension PickerView: UIPickerViewDelegate {
     open func pickerView(_ pickerView: UIPickerView, attributedTitleForRow row: Int, forComponent component: Int) -> NSAttributedString?
     {

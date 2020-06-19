@@ -20,17 +20,16 @@ open class PickerInputAccessoryView: UIView {
         super.init(frame: frame)
         loadView()
     }
-    
-    public init() {
-        super.init(frame: .zero)
-        loadView()
+        
+    public convenience init() {
+        self.init(frame: .zero)
     }
     
     func loadView() {
         let doneButton = UIButton()
         doneButton.setTitle("DONE", for: .normal)
-        doneButton.setTitleColor(UIColor.black, for: .normal)
-        doneButton.titleLabel?.font = UIFont.systemFont(ofSize: 16)
+        doneButton.setTitleColor(.black, for: .normal)
+        doneButton.titleLabel?.font = .systemFont(ofSize: 16)
         doneButton.addTarget(self, action: #selector(doneAction), for: .touchUpInside)
         
         let view = UIView()

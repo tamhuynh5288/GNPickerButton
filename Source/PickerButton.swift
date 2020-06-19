@@ -20,7 +20,7 @@ open class PickerButton: UIButton {
     /// List of stored constraints of indicatorButton
     private var indicatorButtonConstraints = [NSLayoutConstraint]()
     
-    // Handler closures
+    // MARK: - Handler
     open var beginEditingHandler: ((String?) -> Void)?
     open var selectedRowHandler: ((PickerItem) -> Void)?
     open var doneActionHandler: (([PickerItem]) -> Void)?
@@ -32,26 +32,21 @@ open class PickerButton: UIButton {
     /// Combine title in all component to picker button title. Default: True
     open var autoCombineTitle = true
     
-    // ======================================================================
-    // MARK: - Layout Properties
-    // ======================================================================
+    // MARK: - COMPUTED PROPERTIES
     
     /// Image of indicator
-    @IBInspectable
-    open var indicatorImage: UIImage? = #imageLiteral(resourceName: "list_pull") {
+    @IBInspectable open var indicatorImage: UIImage? {
         didSet {
             indicatorButton.setImage(indicatorImage, for: .normal)
             layoutTitleHorizontalInsetIfNeed()
         }
     }
     
-    @IBInspectable
-    open var titleHorizontalInset: CGFloat = 16 {
+    @IBInspectable open var titleHorizontalInset: CGFloat = 16 {
         didSet { layoutTitleHorizontalInsetIfNeed() }
     }
     
-    @IBInspectable
-    open var indicatorHorizontalInset: CGFloat = 16 {
+    @IBInspectable open var indicatorHorizontalInset: CGFloat = 16 {
         didSet {
             layoutIndicatorButtonIfNeeded()
             layoutTitleHorizontalInsetIfNeed()
@@ -65,22 +60,17 @@ open class PickerButton: UIButton {
         }
     }
     
-    // ======================================================================
-    // MARK: - Enabled/Disabled State
-    // ======================================================================
+    // MARK: Enabled/Disabled State
     
-    @IBInspectable
-    open var enabledBackgroundColor: UIColor = .white {
+    @IBInspectable open var enabledBackgroundColor: UIColor = .white {
         didSet { setEnabledState(isEnabled) }
     }
     
-    @IBInspectable
-    open var disabledBackgroundColor: UIColor = .lightGray {
+    @IBInspectable open var disabledBackgroundColor: UIColor = .lightGray {
         didSet { setEnabledState(isEnabled) }
     }
     
-    @IBInspectable
-    open var disabledTitleColor: UIColor = .darkGray {
+    @IBInspectable open var disabledTitleColor: UIColor = .darkGray {
         didSet { setEnabledState(isEnabled) }
     }
     
@@ -103,9 +93,7 @@ open class PickerButton: UIButton {
         didSet { setEnabledState(isEnabled) }
     }
     
-    // ======================================================================
-    // MARK: - Initialize
-    // ======================================================================
+    // MARK: - CLASS IMPLEMENTED
     
     public required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
@@ -117,10 +105,12 @@ open class PickerButton: UIButton {
         configuration()
     }
     
-    // ======================================================================
-    // MARK: - Responder
-    // ======================================================================
+    public convenience init() {
+        self.init(frame: .zero)
+    }
     
+    // MARK: Responder
+
     @discardableResult
     override open func becomeFirstResponder() -> Bool {
         textField.becomeFirstResponder()
@@ -138,9 +128,7 @@ open class PickerButton: UIButton {
 private extension PickerButton {
     /// Configuration
     func configuration() {
-        defer {
-            setEnabledState(isEnabled)
-        }
+        defer { deferSetup() }
         
         // Add subviews
         insertSubview(textField, at: 0)
@@ -159,6 +147,10 @@ private extension PickerButton {
         setupPickerView()
         setupAccessoryView()
         setupIndicatorButton()
+    }
+    
+    func deferSetup() {
+        setEnabledState(isEnabled)
     }
     
     /// Setup input textfield
@@ -242,7 +234,7 @@ private extension PickerButton {
     }
 }
 
-// MARK: - Datasource Flow
+// MARK: - Datasources
 extension PickerButton {
     /// Set datatsource with one component for picker
     ///

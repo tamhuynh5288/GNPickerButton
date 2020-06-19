@@ -20,9 +20,9 @@ class ViewController: UIViewController {
         pickerButton.enabledBackgroundColor = UIColor.blue
         pickerButton.setDatasource(createNameDatasource())
         
-        pickerButton.doneActionHandler = { [weak self] (pickerButton, pickerItems) in
+        pickerButton.doneActionOnFirstComponentHandler = { [weak self] (item) in
             guard let self = self else { return }
-            self.nameLabel.text = "Selected name is \(pickerItems.first?.data.value ?? "")"
+            self.nameLabel.text = "Selected name is \(item.data.value)"
         }
     }
 }
@@ -30,9 +30,9 @@ class ViewController: UIViewController {
 private extension ViewController {
     func createNameDatasource() -> [[PickerData]] {
         return [[PickerData(value: ""),
-                PickerData(value: "Alex sdsds"),
-                PickerData(value: "Tom sdsd"),
-                PickerData(value: "Jimmy sssss")]]
+                PickerData(value: "Alex"),
+                PickerData(value: "Tom"),
+                PickerData(value: "Jimmy")]]
     }
 }
 

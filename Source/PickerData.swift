@@ -9,19 +9,19 @@
 import UIKit
 
 public protocol PickerDatasource {
-    var datasources: [[PickerData]] { get }
+    var datasources: [[PickerData]] { get set }
 }
 
 public struct PickerData {
     public var title: String
     public var value: String
-    public var optionalValue: String?
+    public var optional: Any?
     public var options: [String: Any]?
     
-    public init(value: String? = nil, title: String? = nil, optional: String? = nil, options: [String: Any]? = nil) {
+    public init(value: String? = nil, title: String? = nil, optional: Any? = nil, options: [String: Any]? = nil) {
         self.value = value ?? ""
-        self.title = title ?? value ?? ""        
-        self.optionalValue = optional
+        self.title = title ?? (value ?? "")
+        self.optional = optional
         self.options = options
     }
 }
