@@ -1,6 +1,6 @@
 Pod::Spec.new do |spec|
   spec.name = "GNPickerButton"
-  spec.version = "0.0.2"
+  spec.version = "0.0.3"
   spec.summary = "A frameworks that let you easy to create picker selection"
   spec.homepage = "https://github.com/tamhuynh5288/GNPickerButton"
   spec.license = "MIT"
